@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  TodoAppTodosService:
+    Type: AWS::Serverless::Api
+    Description: "Serverless API for CRUD operations"
+    Properties:
+      Name: "todoapp-todos-service"
+      StageName: Prod
+      Cors:
+        AllowMethods: "'OPTIONS, POST, GET, PUT, DELETE'"
+        AllowHeaders: "'Content-Type, Authorization'"
+        # AllowOrigin: "'http://localhost:5173'" # replace with frontend app URL
+        AllowOrigin: "'https://d1jeoupfs8uam5.cloudfront.net'" # replace with frontend app URL
+
+  TodoAppTodosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 10
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Policies:
+        - AWSLambdaExecute
+        - SecretsManagerReadWrite
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TodoAppTodosTable
+      Events:
+        TodosOptions:
+          Type: Api
+          Properties:
+            Path: /todos
+            Method: OPTIONS
+            RestApiId: !Ref TodoAppTodosService
+        GetTodo:
+          Type: Api
+          Properties:
+            Path: /todos/{id}
+            Method: GET
+            RestApiId: !Ref TodoAppTodosService
+        GetTodos:
+          Type: Api
+          Properties:
+            Path: /todos
+            Method: GET
+            RestApiId: !Ref TodoAppTodosService
+        PutTodo:
+          Type: Api
+          Properties:
+            Path: /todos
+            Method: POST
+            RestApiId: !Ref TodoAppTodosService
+        DeleteTodo:
+          Type: Api
+          Properties:
+            Path: /todos/{id}
+            Method: DELETE
+            RestApiId: !Ref TodoAppTodosService
+        UpdateTodo:
+          Type: Api
+          Properties:
+            Path: /todos/{id}
+            Method: PUT
+            RestApiId: !Ref TodoAppTodosService
+    Metadata:
+      BuildMethod: makefile
+
+  TodoAppTodosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TodoAppTodos
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
